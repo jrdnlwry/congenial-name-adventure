@@ -61,7 +61,7 @@ def create_tables(db_name, db_user, db_password, db_host, db_port):
         conn.commit()
         cur.close()
         conn.close()
-        print("Tables created successfully")
+        print("data uploaded successfully")
 
     except OperationalError as e:
         print(f"The error '{e}' occurred")
