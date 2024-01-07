@@ -6,6 +6,7 @@ from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 import datetime as dt
 from datetime import timedelta
+from datetime import datetime
 
 """
 Upon execution:
@@ -34,6 +35,7 @@ def create_tables(db_name, db_user, db_password, db_host, db_port):
         create_users_table = """
         CREATE TABLE IF NOT EXISTS Users (
             user_id SERIAL PRIMARY KEY,
+            event_timestamp timestamp without time zone,
             gender VARCHAR(10),
             first_name VARCHAR(50),
             last_name VARCHAR(50),
@@ -47,6 +49,7 @@ def create_tables(db_name, db_user, db_password, db_host, db_port):
         create_location_table = """
         CREATE TABLE IF NOT EXISTS Location (
             user_id INTEGER REFERENCES Users(user_id),
+            event_timestamp timestamp without time zone,
             street_number INTEGER,
             street_name VARCHAR(100),
             city VARCHAR(50),
@@ -175,12 +178,13 @@ def write_db(json_file):
         email = elem['email']
         mobile_ph = elem['cell']
         picture = elem['picture']['large']
+        timeStamp = datetime.now().isoformat(timespec="minutes")
         
         # Insert user and get user_id
-        cur.execute("INSERT INTO users (gender, first_name, last_name, dob_age, email, cell, picture_large) VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING user_id", (gender, Fname, Lname, age, email, mobile_ph, picture))
+        cur.execute("INSERT INTO users (gender, event_timestamp, first_name, last_name, dob_age, email, cell, picture_large) VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING user_id", (gender, timeStamp, Fname, Lname, age, email, mobile_ph, picture))
         user_id = cur.fetchone()[0]
         # Insert location using the retrieved user_id
-        cur.execute("INSERT INTO location (user_id, street_number, street_name, city, state, country, postcode) VALUES (%s, %s, %s, %s, %s, %s, %s)", (user_id, street_num, street_name, city, state, country, zip))
+        cur.execute("INSERT INTO location (user_id, event_timestamp, street_number, street_name, city, state, country, postcode) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", (user_id, timeStamp, street_num, street_name, city, state, country, zip))
 
         # Commit the transaction
         conn.commit()
@@ -202,7 +206,7 @@ json_processing_dag = DAG(
     'json_processing_dag',
     default_args=default_args,
     description='Process JSON files and write to DB',
-    schedule_interval=timedelta(days=1),  # Adjust as needed
+    schedule_interval="0 * * * *",  # write new data every hour
     catchup=False
 )
 

@@ -41,6 +41,6 @@ EXPOSE 8080
 # Set the entrypoint script to initialize Airflow
 ENTRYPOINT ["/entrypoint.sh"]
 
-# Command to run Airflow webserver (you might want to add the scheduler as well, or use a process manager like supervisord)
+# Command to run Airflow webserver
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
 
