@@ -15,3 +15,6 @@ Manages writing data to the database.
 Deletes JSON files after their data is written to the respective tables.
 ## 3. Environment Setup
 Virtual environment using Conda: conda create -n nameENV python=2.7.18.
+
+## Proposed Architecture Diagram
+![Alt text](https://github.com/jrdnlwry/data_engineering/blob/63f4cdd5fc6abcc0469ee7869c2a7fa1b67a8326/Tate%20Lowry's%20team%20library.png)

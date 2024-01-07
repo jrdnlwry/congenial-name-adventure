@@ -1,0 +1,37 @@
+version: '3.3'
+services:
+  pg-database:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: admin_user
+      POSTGRES_PASSWORD: admin_password
+      POSTGRES_DB: name_db
+    ports:
+      - "5432:5432"
+    networks:
+      - pg-network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: root
+    ports:
+      - "5050:80"
+    networks:
+      - pg-network
+    depends_on:
+      - pg-database
+
+  name-api-container:
+    build: .
+    image: airflow-image
+    ports:
+      - "8080:8080"
+    networks:
+      - pg-network
+    depends_on:
+      - pg-database
+
+networks:
+  pg-network:

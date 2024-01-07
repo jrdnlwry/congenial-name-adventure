@@ -1,3 +1,12 @@
+import json
+import os
+import psycopg2
+from psycopg2 import OperationalError
+from airflow import DAG
+from airflow.operators.python_operator import PythonOperator
+import datetime as dt
+from datetime import timedelta
+
 """
 Upon execution:
     sort all json files by recency
@@ -6,15 +15,9 @@ Upon execution:
     delete all json files in folder
 """
 
-import json
-import os
-import psycopg2
-from psycopg2 import OperationalError
+# TABLE CREATION DAG
 
-# for f in os.listdir("./data/"):
-#     print(f)
-
-
+# This function is modified to accept parameters
 def create_tables(db_name, db_user, db_password, db_host, db_port):
     # Connection to the PostgreSQL database
     try:
@@ -67,6 +70,38 @@ def create_tables(db_name, db_user, db_password, db_host, db_port):
         print(f"The error '{e}' occurred")
 
 
+# common default arguments
+default_args = {
+    'owner': 'admin',
+    'start_date': dt.datetime(2022, 1, 1),  # Adjust start date accordingly
+    'retries': 3,
+    'retry_delay': timedelta(minutes=2),
+}
+
+# DAG for creating tables (runs once)
+table_creation_dag = DAG(
+    'table_creation_dag',
+    default_args=default_args,
+    description='Create initial database tables',
+    schedule_interval='@once',
+    catchup=False
+)
+
+table_creation_task = PythonOperator(
+    task_id='create_tables',
+    python_callable=create_tables,
+    op_kwargs={
+        'db_name': "name_db",
+        'db_user': "admin_user",
+        'db_password': "admin_password",
+        'db_host': "pg-database",
+        'db_port': "5432"
+    },
+    dag=table_creation_dag
+)
+
+# --- JSON PROCESSING ---
+
 def sort_files():
 
     sorted_list = []
@@ -81,8 +116,6 @@ def sort_files():
         
     return sorted_list
 
-
-
 def write_db(json_file):
 
 
@@ -90,7 +123,9 @@ def write_db(json_file):
     db_name = "name_db"
     db_user = "admin_user"
     db_password = "admin_password"
-    db_host = "localhost"
+    # db_host = "localhost"
+    # updated to communicate with the docker container
+    db_host = "pg-database"
     db_port = "5432"
     # open the database connection
     conn = psycopg2.connect(
@@ -153,12 +188,39 @@ def write_db(json_file):
     # Close the cursor and connection
     cur.close()
     conn.close()
-
-
-create_tables("name_db", "admin_user", "admin_password", "localhost", "5432")
-
-for file in sort_files():
-    #print(type(file))
-    write_db(file)
     # remove the file from the folder
-    os.remove(f'./data/{file}')
+    os.remove(f'./data/{json_file}')
+
+def process_json_files():
+    for file in sort_files():
+        write_db(file)
+
+# ---- DAG definition ---
+        
+# DAG for processing JSON files
+json_processing_dag = DAG(
+    'json_processing_dag',
+    default_args=default_args,
+    description='Process JSON files and write to DB',
+    schedule_interval=timedelta(days=1),  # Adjust as needed
+    catchup=False
+)
+
+# pass in the optional keyword arguments to connect to DB
+process_json_task = PythonOperator(
+    task_id='process_json_files',
+    python_callable=process_json_files,
+    op_kwargs={
+        'db_name': "name_db",
+        'db_user': "admin_user",
+        'db_password': "admin_password",
+        'db_host': "pg-database",
+        'db_port': "5432"
+    },
+    dag=json_processing_dag
+)
+
+# --- Call Dags --
+process_json_task
+
+table_creation_task

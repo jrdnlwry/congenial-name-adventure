@@ -1,4 +1,4 @@
 # HTTP library
 requests
-# Postgres Python Module
-psycopg2-binary==2.9.9
+# Postgres Python Module - importing within Dockerfile
+#psycopg2-binary==2.9.9
